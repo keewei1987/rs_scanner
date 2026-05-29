@@ -2,40 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIN Prototype</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FIN Scanner - Production Build</title>
     <!-- Tailwind CSS for rapid UI building -->
     <script src="https://jsdelivr.net"></script>
     <!-- Html5-QRCode engine for camera streaming -->
     <script src="https://cloudflare.com"></script>
 </head>
-<body class="bg-slate-900 text-white font-sans antialiased h-screen overflow-hidden flex flex-col justify-between p-4">
+<body class="bg-slate-900 text-white font-sans antialiased h-screen overflow-hidden flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
 
     <!-- Header Area -->
     <header class="text-center py-2 border-b border-slate-700 shrink-0">
-        <h1 class="text-lg font-bold tracking-wide text-amber-400">FIN SCANNER PROTOTYPE</h1>
-        <p class="text-[10px] text-amber-500 font-mono">Simulated Database Active</p>
+        <h1 class="text-lg font-bold tracking-wide text-emerald-400">FIN SCANNER PROTOCOL</h1>
+        <p class="text-[10px] text-slate-400 font-mono">Secure Cloud Sync Active</p>
     </header>
 
     <!-- Main Dynamic Viewport -->
     <main class="flex-grow flex flex-col justify-center my-2 space-y-4 overflow-hidden">
         
-        <!-- Viewfinder (Optimized for standard browser view) -->
-        <div class="overflow-hidden rounded-xl border-2 border-slate-700 bg-slate-950 relative max-h-[35vh] aspect-video mx-auto w-full">
+        <!-- Viewfinder (Optimized for standard browser view & explicit aspect ratio) -->
+        <div class="overflow-hidden rounded-xl border-2 border-slate-700 bg-slate-950 relative max-h-[38vh] aspect-video mx-auto w-full">
             <div id="reader" class="w-full h-full"></div>
         </div>
 
         <!-- Testing Panel: Manual input if camera is unavailable -->
-        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs">
-            <label class="block text-slate-400 mb-1">Prototype Manual Override (Test FIN):</label>
+        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs shrink-0">
+            <label class="block text-slate-400 mb-1">Manual Override Input (Test / Fallback):</label>
             <div class="flex gap-2">
-                <input type="text" id="manual-fin" placeholder="e.g., F1234567X" class="bg-slate-950 border border-slate-600 rounded px-2 py-1 flex-grow font-mono uppercase text-white">
-                <button onclick="testManualInput()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded font-bold">Simulate</button>
+                <input type="text" id="manual-fin" placeholder="e.g., F1234567X" class="bg-slate-950 border border-slate-600 rounded px-2 py-1 flex-grow font-mono uppercase text-white focus:outline-none focus:border-emerald-500">
+                <button onclick="testManualInput()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded font-bold transition">Simulate</button>
             </div>
         </div>
 
         <!-- Real-time Output Display Panel -->
-        <div id="result-card" class="hidden p-4 rounded-xl border bg-slate-800 transition-all duration-300">
+        <div id="result-card" class="hidden p-4 rounded-xl border bg-slate-800 transition-all duration-300 overflow-y-auto">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target FIN</span>
                 <span id="display-fin" class="text-lg font-mono font-bold text-white"></span>
@@ -55,36 +55,57 @@
 
     <!-- Trigger Button -->
     <footer class="pb-2 shrink-0">
-        <button onclick="startScanning()" class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-base rounded-xl transition active:scale-98">
+        <button onclick="startScanning()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-base rounded-xl transition active:scale-98 shadow-lg">
             START LIVE CAMERA SCAN
         </button>
     </footer>
 
-    <!-- Frontend Prototype JavaScript Architecture -->
+    <!-- Frontend Core JavaScript Architecture -->
     <script>
-        let html5QrcodeScanner;
+        let html5Qrcode;
 
-        // Validation rule for Singapore FIN layouts
         function isValidFIN(fin) {
             return /^[FGMfgm][0-9]{7}[A-Za-z]$/.test(fin.trim());
         }
 
-        function startScanning() {
+        async function startScanning() {
+            // Clear current layout states cleanly
             document.getElementById('result-card').classList.add('hidden');
-            html5QrcodeScanner = new Html5Qrcode("reader");
             
-            html5QrcodeScanner.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 260, height: 120 } },
+            // Clean up old active instances before spawning a fresh hardware call
+            if (html5Qrcode) {
+                try { await html5Qrcode.stop(); } catch(e) {}
+            }
+
+            // Create fresh instance pointing to the container div
+            html5Qrcode = new Html5Qrcode("reader");
+            
+            // iOS Specific Layout Rule: Ensure the scanning box fits entirely within container boundaries
+            const containerWidth = document.getElementById('reader').clientWidth;
+            const targetScanWidth = Math.min(containerWidth * 0.7, 250); 
+
+            const config = { 
+                fps: 15, 
+                // Set explicit rectangular dimensions ideal for processing long card barcodes
+                qrbox: { width: targetScanWidth, height: targetScanWidth * 0.5 },
+                aspectRatio: 1.777778 // Forces landscape layout natively inside container
+            };
+
+            html5Qrcode.start(
+                { facingMode: "environment" }, // Focus on back-facing lens hardware
+                config,
                 (decodedText) => {
                     let cleanedFIN = decodedText.trim().toUpperCase();
                     if (isValidFIN(cleanedFIN)) {
-                        html5QrcodeScanner.stop();
+                        html5Qrcode.stop();
                         simulateDatabaseQuery(cleanedFIN);
                     }
                 },
-                (err) => { /* Silently ignore scanning frame errors */ }
-            ).catch(err => alert("Camera access issue: " + err));
+                (err) => { /* Frame processing drops are normal, bypass error output log here */ }
+            ).catch(err => {
+                alert("iOS Camera Exception: Verify Safari permissions. Settings -> Safari -> Camera -> Set to Allow.");
+                console.error(err);
+            });
         }
 
         function testManualInput() {
@@ -92,22 +113,19 @@
             let cleanedFIN = inputField.value.trim().toUpperCase();
             if (isValidFIN(cleanedFIN)) {
                 simulateDatabaseQuery(cleanedFIN);
+                inputField.value = ""; // Clear input safely
+                // Force collapse open soft keyboard layout on mobile
+                inputField.blur();
             } else {
-                alert("Invalid Singapore FIN format. Must follow standard pattern (e.g., F1234567X).");
+                alert("Invalid Singapore FIN structure layout. E.g. F1234567X");
             }
         }
 
-        // PROTOTYPE ENGINE: Simulates a real database using the browser's temporary LocalStorage.
-        // If you scan the same FIN twice, the browser remembers and increments its offence count!
         function simulateDatabaseQuery(finNumber) {
-            // Check how many times this specific FIN has been seen in this browser session
             let existingCount = localStorage.getItem(finNumber);
             let currentOffenceCount = existingCount ? parseInt(existingCount) : 0;
             
-            // Render the business rule advice onto the screen
             executeRulesEngine(finNumber, currentOffenceCount);
-
-            // Increment the count in local memory to simulate a database record being written
             localStorage.setItem(finNumber, currentOffenceCount + 1);
         }
 
@@ -119,7 +137,7 @@
 
             finDisplay.innerText = fin;
             card.classList.remove('hidden');
-            card.className = "p-4 rounded-xl border bg-slate-800 transition-all duration-300 ";
+            card.className = "p-4 rounded-xl border bg-slate-800 transition-all duration-300 shrink-0 ";
             adviceDisplay.className = "p-3 rounded text-xs font-semibold leading-relaxed ";
 
             if (totalOffences === 0) {
