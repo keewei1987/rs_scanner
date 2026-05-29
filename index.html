@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIN Prototype</title>
+    <!-- Tailwind CSS for rapid UI building -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- Html5-QRCode engine for camera streaming -->
+    <script src="https://cloudflare.com"></script>
+</head>
+<body class="bg-slate-900 text-white font-sans antialiased h-screen overflow-hidden flex flex-col justify-between p-4">
+
+    <!-- Header Area -->
+    <header class="text-center py-2 border-b border-slate-700 shrink-0">
+        <h1 class="text-lg font-bold tracking-wide text-amber-400">FIN SCANNER PROTOTYPE</h1>
+        <p class="text-[10px] text-amber-500 font-mono">Simulated Database Active</p>
+    </header>
+
+    <!-- Main Dynamic Viewport -->
+    <main class="flex-grow flex flex-col justify-center my-2 space-y-4 overflow-hidden">
+        
+        <!-- Viewfinder (Optimized for standard browser view) -->
+        <div class="overflow-hidden rounded-xl border-2 border-slate-700 bg-slate-950 relative max-h-[35vh] aspect-video mx-auto w-full">
+            <div id="reader" class="w-full h-full"></div>
+        </div>
+
+        <!-- Testing Panel: Manual input if camera is unavailable -->
+        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs">
+            <label class="block text-slate-400 mb-1">Prototype Manual Override (Test FIN):</label>
+            <div class="flex gap-2">
+                <input type="text" id="manual-fin" placeholder="e.g., F1234567X" class="bg-slate-950 border border-slate-600 rounded px-2 py-1 flex-grow font-mono uppercase text-white">
+                <button onclick="testManualInput()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded font-bold">Simulate</button>
+            </div>
+        </div>
+
+        <!-- Real-time Output Display Panel -->
+        <div id="result-card" class="hidden p-4 rounded-xl border bg-slate-800 transition-all duration-300">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target FIN</span>
+                <span id="display-fin" class="text-lg font-mono font-bold text-white"></span>
+            </div>
+            
+            <div class="mt-2 p-2 rounded bg-slate-950 border border-slate-700">
+                <div class="text-[10px] text-slate-400 uppercase">Offence Status</div>
+                <div id="display-status" class="text-lg font-black mt-0.5"></div>
+            </div>
+
+            <div class="mt-3">
+                <div class="text-[10px] text-slate-400 uppercase mb-0.5">Mandatory Officer Action</div>
+                <div id="display-advice" class="p-3 rounded text-xs font-semibold leading-relaxed"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Trigger Button -->
+    <footer class="pb-2 shrink-0">
+        <button onclick="startScanning()" class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-base rounded-xl transition active:scale-98">
+            START LIVE CAMERA SCAN
+        </button>
+    </footer>
+
+    <!-- Frontend Prototype JavaScript Architecture -->
+    <script>
+        let html5QrcodeScanner;
+
+        // Validation rule for Singapore FIN layouts
+        function isValidFIN(fin) {
+            return /^[FGMfgm][0-9]{7}[A-Za-z]$/.test(fin.trim());
+        }
+
+        function startScanning() {
+            document.getElementById('result-card').classList.add('hidden');
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 260, height: 120 } },
+                (decodedText) => {
+                    let cleanedFIN = decodedText.trim().toUpperCase();
+                    if (isValidFIN(cleanedFIN)) {
+                        html5QrcodeScanner.stop();
+                        simulateDatabaseQuery(cleanedFIN);
+                    }
+                },
+                (err) => { /* Silently ignore scanning frame errors */ }
+            ).catch(err => alert("Camera access issue: " + err));
+        }
+
+        function testManualInput() {
+            let inputField = document.getElementById('manual-fin');
+            let cleanedFIN = inputField.value.trim().toUpperCase();
+            if (isValidFIN(cleanedFIN)) {
+                simulateDatabaseQuery(cleanedFIN);
+            } else {
+                alert("Invalid Singapore FIN format. Must follow standard pattern (e.g., F1234567X).");
+            }
+        }
+
+        // PROTOTYPE ENGINE: Simulates a real database using the browser's temporary LocalStorage.
+        // If you scan the same FIN twice, the browser remembers and increments its offence count!
+        function simulateDatabaseQuery(finNumber) {
+            // Check how many times this specific FIN has been seen in this browser session
+            let existingCount = localStorage.getItem(finNumber);
+            let currentOffenceCount = existingCount ? parseInt(existingCount) : 0;
+            
+            // Render the business rule advice onto the screen
+            executeRulesEngine(finNumber, currentOffenceCount);
+
+            // Increment the count in local memory to simulate a database record being written
+            localStorage.setItem(finNumber, currentOffenceCount + 1);
+        }
+
+        function executeRulesEngine(fin, totalOffences) {
+            const card = document.getElementById('result-card');
+            const finDisplay = document.getElementById('display-fin');
+            const statusDisplay = document.getElementById('display-status');
+            const adviceDisplay = document.getElementById('display-advice');
+
+            finDisplay.innerText = fin;
+            card.classList.remove('hidden');
+            card.className = "p-4 rounded-xl border bg-slate-800 transition-all duration-300 ";
+            adviceDisplay.className = "p-3 rounded text-xs font-semibold leading-relaxed ";
+
+            if (totalOffences === 0) {
+                card.classList.add('border-blue-500');
+                statusDisplay.innerText = "1ST TIME OFFENDER";
+                statusDisplay.className = "text-lg font-black mt-0.5 text-blue-400";
+                adviceDisplay.innerText = "ACTION: Record particulars. Issue a verbal safety warning. Hand over the standard compliance informational pamphlet.";
+                adviceDisplay.classList.add('bg-blue-950', 'text-blue-200', 'border', 'border-blue-800');
+            } else if (totalOffences === 1) {
+                card.classList.add('border-amber-500');
+                statusDisplay.innerText = "2ND TIME OFFENDER";
+                statusDisplay.className = "text-lg font-black mt-0.5 text-amber-400";
+                adviceDisplay.innerText = "ACTION: Issue an official composition fine notice. Escalate entry details and verify physical work pass legitimacy.";
+                adviceDisplay.classList.add('bg-amber-950', 'text-amber-200', 'border', 'border-amber-800');
+            } else {
+                card.classList.add('border-rose-600');
+                statusDisplay.innerText = `REPEAT OFFENDER (${totalOffences} Previous Logs)`;
+                statusDisplay.className = "text-lg font-black mt-0.5 text-rose-500";
+                adviceDisplay.innerText = "CRITICAL ACTION: Deny facility clearance immediately. Detain physical card if appropriate. Initiate formal investigation paperwork.";
+                adviceDisplay.classList.add('bg-rose-950', 'text-rose-200', 'border', 'border-rose-900');
+            }
+        }
+    </script>
+</body>
+</html>
