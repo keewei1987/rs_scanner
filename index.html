@@ -1,197 +1,361 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FIN Scanner - Production Build</title>
-    <!-- Tailwind CSS -->
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=no" />
+
+    <title>FIN Scanner</title>
+
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Html5 QRCode -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Html5 QR Code -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body class="bg-slate-900 text-white font-sans antialiased h-screen overflow-hidden flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
 
-    <!-- Header Area -->
-    <header class="text-center py-2 border-b border-slate-700 shrink-0">
-        <h1 class="text-lg font-bold tracking-wide text-emerald-400">FIN SCANNER PROTOCOL</h1>
-        <p class="text-[10px] text-slate-400 font-mono">Secure Cloud Sync Active</p>
-    </header>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col p-4">
 
-    <!-- Main Dynamic Viewport -->
-    <main class="flex-grow flex flex-col justify-center my-2 space-y-4 overflow-hidden">
-        
-        <!-- Viewfinder (Optimized for standard browser view & explicit aspect ratio) -->
-        <div class="overflow-hidden rounded-xl border-2 border-slate-700 bg-slate-950 relative max-h-[38vh] aspect-video mx-auto w-full">
-            <div id="reader" class="w-full h-full"></div>
+    <!-- HEADER -->
+    <div class="text-center mb-4">
+        <h1 class="text-2xl font-bold text-emerald-400">
+            FIN SCANNER
+        </h1>
+
+        <p class="text-slate-400 text-sm">
+            Barcode Scanner System
+        </p>
+    </div>
+
+    <!-- CAMERA VIEW -->
+    <div class="bg-black rounded-xl overflow-hidden border border-slate-700">
+
+        <div id="reader"
+             style="width:100%; min-height:350px;">
         </div>
 
-        <!-- Testing Panel: Manual input if camera is unavailable -->
-        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs shrink-0">
-            <label class="block text-slate-400 mb-1">Manual Override Input (Test / Fallback):</label>
-            <div class="flex gap-2">
-                <input type="text" id="manual-fin" placeholder="e.g., F1234567X" class="bg-slate-950 border border-slate-600 rounded px-2 py-1 flex-grow font-mono uppercase text-white focus:outline-none focus:border-emerald-500">
-                <button onclick="testManualInput()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded font-bold transition">Simulate</button>
-            </div>
+    </div>
+
+    <!-- STATUS -->
+    <div id="status"
+         class="mt-4 p-3 rounded-lg bg-slate-800 text-sm text-slate-300">
+
+        Waiting to start scanner...
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-card"
+         class="hidden mt-4 p-4 rounded-xl border border-emerald-500 bg-slate-800">
+
+        <div class="text-sm text-slate-400">
+            SCANNED RESULT
         </div>
 
-        <!-- Real-time Output Display Panel -->
-        <div id="result-card" class="hidden p-4 rounded-xl border bg-slate-800 transition-all duration-300 overflow-y-auto">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Target FIN</span>
-                <span id="display-fin" class="text-lg font-mono font-bold text-white"></span>
-            </div>
-            
-            <div class="mt-2 p-2 rounded bg-slate-950 border border-slate-700">
-                <div class="text-[10px] text-slate-400 uppercase">Offence Status</div>
-                <div id="display-status" class="text-lg font-black mt-0.5"></div>
-            </div>
-
-            <div class="mt-3">
-                <div class="text-[10px] text-slate-400 uppercase mb-0.5">Mandatory Officer Action</div>
-                <div id="display-advice" class="p-3 rounded text-xs font-semibold leading-relaxed"></div>
-            </div>
+        <div id="display-fin"
+             class="text-2xl font-bold mt-2 text-emerald-400 font-mono">
         </div>
-    </main>
 
-    <!-- Trigger Button -->
-    <footer class="pb-2 shrink-0">
-        <button onclick="startScanning()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-base rounded-xl transition active:scale-98 shadow-lg">
-            START LIVE CAMERA SCAN
+        <div id="display-status"
+             class="mt-3 text-lg font-bold">
+        </div>
+
+        <div id="display-advice"
+             class="mt-3 p-3 rounded bg-slate-900 text-sm">
+        </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="mt-4 grid grid-cols-2 gap-3">
+
+        <button onclick="startScanner()"
+                class="bg-emerald-500 text-black font-bold py-4 rounded-xl">
+
+            START SCANNER
         </button>
-    </footer>
 
-    <!-- Frontend Core JavaScript Architecture -->
-    <script>
-        let html5Qrcode;
+        <button onclick="stopScanner()"
+                class="bg-rose-500 text-white font-bold py-4 rounded-xl">
 
-        function isValidFIN(fin) {
-            return /^[FGMfgm][0-9]{7}[A-Za-z]$/.test(fin.trim());
-        }
+            STOP
+        </button>
+    </div>
 
-        async function startScanning() {
+    <!-- MANUAL TEST -->
+    <div class="mt-4 bg-slate-800 p-3 rounded-xl">
 
-    document.getElementById('result-card').classList.add('hidden');
+        <div class="text-sm text-slate-400 mb-2">
+            Manual FIN Test
+        </div>
 
-    if (html5Qrcode) {
-        try {
-            await html5Qrcode.stop();
-            await html5Qrcode.clear();
-        } catch(e) {
-            console.log(e);
-        }
-    }
+        <div class="flex gap-2">
+
+            <input id="manual-fin"
+                   type="text"
+                   placeholder="F1234567X"
+                   class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 uppercase font-mono" />
+
+            <button onclick="manualSubmit()"
+                    class="bg-slate-700 px-4 rounded">
+
+                Submit
+            </button>
+
+        </div>
+    </div>
+
+<script>
+
+let scanner = null;
+let scannerRunning = false;
+
+function setStatus(message) {
+    document.getElementById("status").innerText = message;
+}
+
+function isValidFIN(fin) {
+    return /^[FGM][0-9]{7}[A-Z]$/.test(fin);
+}
+
+async function startScanner() {
 
     try {
 
-        html5Qrcode = new Html5Qrcode("reader");
+        setStatus("Requesting camera permission...");
 
-        const containerWidth =
-            document.getElementById('reader').clientWidth;
+        // Force camera permission popup
+        await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
 
-        const targetScanWidth =
-            Math.min(containerWidth * 0.7, 250);
+        setStatus("Camera permission granted.");
 
-        const config = {
-            fps: 10,
-            qrbox: {
-                width: targetScanWidth,
-                height: targetScanWidth * 0.5
-            },
-            aspectRatio: 1.777778
-        };
+        if (scannerRunning && scanner) {
+            await stopScanner();
+        }
 
-        await html5Qrcode.start(
+        scanner = new Html5Qrcode("reader");
+
+        // Get all cameras
+        const devices = await Html5Qrcode.getCameras();
+
+        if (!devices || devices.length === 0) {
+            setStatus("No camera detected.");
+            return;
+        }
+
+        // Prefer back camera
+        let cameraId = devices[0].id;
+
+        const backCamera = devices.find(device =>
+            device.label.toLowerCase().includes("back")
+        );
+
+        if (backCamera) {
+            cameraId = backCamera.id;
+        }
+
+        setStatus("Starting camera scanner...");
+
+        await scanner.start(
+            cameraId,
+
             {
-                facingMode: { exact: "environment" }
+                fps: 10,
+
+                qrbox: {
+                    width: 300,
+                    height: 150
+                },
+
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                },
+
+                formatsToSupport: [
+
+                    Html5QrcodeSupportedFormats.PDF_417,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.EAN_13
+                ]
             },
-            config,
 
             (decodedText) => {
 
-                let cleanedFIN =
-                    decodedText.trim().toUpperCase();
+                console.log("SCANNED:", decodedText);
 
-                if (isValidFIN(cleanedFIN)) {
+                setStatus("Barcode detected.");
 
-                    html5Qrcode.stop();
-
-                    simulateDatabaseQuery(cleanedFIN);
-                }
+                processScan(decodedText);
             },
 
             (errorMessage) => {
-                // Ignore frame scan errors
+                // Ignore frame processing errors
             }
         );
 
+        scannerRunning = true;
+
+        setStatus("Scanner active. Point camera at barcode.");
+
     } catch (err) {
 
-        console.error("Camera start failed:", err);
+        console.error(err);
+
+        setStatus(
+            "Camera failed: " + err
+        );
 
         alert(
-            "Unable to access camera.\n\n" +
-            "Possible causes:\n" +
-            "- Camera permission denied\n" +
-            "- Not HTTPS\n" +
-            "- Safari browser restrictions\n" +
-            "- Camera already in use"
+            "Unable to start camera.\n\n" +
+            "Checklist:\n" +
+            "1. Use HTTPS or localhost\n" +
+            "2. Allow camera permissions\n" +
+            "3. Close other camera apps\n" +
+            "4. Try Chrome browser"
         );
     }
 }
 
-        function testManualInput() {
-            let inputField = document.getElementById('manual-fin');
-            let cleanedFIN = inputField.value.trim().toUpperCase();
-            if (isValidFIN(cleanedFIN)) {
-                simulateDatabaseQuery(cleanedFIN);
-                inputField.value = ""; // Clear input safely
-                // Force collapse open soft keyboard layout on mobile
-                inputField.blur();
-            } else {
-                alert("Invalid Singapore FIN structure layout. E.g. F1234567X");
-            }
+async function stopScanner() {
+
+    try {
+
+        if (scanner && scannerRunning) {
+
+            await scanner.stop();
+            await scanner.clear();
+
+            scannerRunning = false;
+
+            setStatus("Scanner stopped.");
         }
 
-        function simulateDatabaseQuery(finNumber) {
-            let existingCount = localStorage.getItem(finNumber);
-            let currentOffenceCount = existingCount ? parseInt(existingCount) : 0;
-            
-            executeRulesEngine(finNumber, currentOffenceCount);
-            localStorage.setItem(finNumber, currentOffenceCount + 1);
-        }
+    } catch (err) {
 
-        function executeRulesEngine(fin, totalOffences) {
-            const card = document.getElementById('result-card');
-            const finDisplay = document.getElementById('display-fin');
-            const statusDisplay = document.getElementById('display-status');
-            const adviceDisplay = document.getElementById('display-advice');
+        console.error(err);
+    }
+}
 
-            finDisplay.innerText = fin;
-            card.classList.remove('hidden');
-            card.className = "p-4 rounded-xl border bg-slate-800 transition-all duration-300 shrink-0 ";
-            adviceDisplay.className = "p-3 rounded text-xs font-semibold leading-relaxed ";
+function processScan(decodedText) {
 
-            if (totalOffences === 0) {
-                card.classList.add('border-blue-500');
-                statusDisplay.innerText = "1ST TIME OFFENDER";
-                statusDisplay.className = "text-lg font-black mt-0.5 text-blue-400";
-                adviceDisplay.innerText = "ACTION: Record particulars. Issue a verbal safety warning. Hand over the standard compliance informational pamphlet.";
-                adviceDisplay.classList.add('bg-blue-950', 'text-blue-200', 'border', 'border-blue-800');
-            } else if (totalOffences === 1) {
-                card.classList.add('border-amber-500');
-                statusDisplay.innerText = "2ND TIME OFFENDER";
-                statusDisplay.className = "text-lg font-black mt-0.5 text-amber-400";
-                adviceDisplay.innerText = "ACTION: Issue an official composition fine notice. Escalate entry details and verify physical work pass legitimacy.";
-                adviceDisplay.classList.add('bg-amber-950', 'text-amber-200', 'border', 'border-amber-800');
-            } else {
-                card.classList.add('border-rose-600');
-                statusDisplay.innerText = `REPEAT OFFENDER (${totalOffences} Previous Logs)`;
-                statusDisplay.className = "text-lg font-black mt-0.5 text-rose-500";
-                adviceDisplay.innerText = "CRITICAL ACTION: Deny facility clearance immediately. Detain physical card if appropriate. Initiate formal investigation paperwork.";
-                adviceDisplay.classList.add('bg-rose-950', 'text-rose-200', 'border', 'border-rose-900');
-            }
-        }
-    </script>
+    let cleanedFIN =
+        decodedText.trim().toUpperCase();
+
+    // If barcode contains extra text,
+    // try extracting FIN pattern
+    const match =
+        cleanedFIN.match(/[FGM][0-9]{7}[A-Z]/);
+
+    if (match) {
+        cleanedFIN = match[0];
+    }
+
+    if (!isValidFIN(cleanedFIN)) {
+
+        setStatus(
+            "Barcode scanned but FIN format invalid."
+        );
+
+        return;
+    }
+
+    simulateDatabaseQuery(cleanedFIN);
+}
+
+function manualSubmit() {
+
+    const input =
+        document.getElementById("manual-fin");
+
+    const value =
+        input.value.trim().toUpperCase();
+
+    if (!isValidFIN(value)) {
+
+        alert("Invalid FIN format");
+
+        return;
+    }
+
+    processScan(value);
+
+    input.value = "";
+}
+
+function simulateDatabaseQuery(fin) {
+
+    let count =
+        localStorage.getItem(fin);
+
+    count = count ? parseInt(count) : 0;
+
+    localStorage.setItem(fin, count + 1);
+
+    showResult(fin, count);
+}
+
+function showResult(fin, offences) {
+
+    const card =
+        document.getElementById("result-card");
+
+    card.classList.remove("hidden");
+
+    document.getElementById("display-fin")
+        .innerText = fin;
+
+    const status =
+        document.getElementById("display-status");
+
+    const advice =
+        document.getElementById("display-advice");
+
+    if (offences === 0) {
+
+        status.innerText =
+            "1ST TIME OFFENDER";
+
+        status.className =
+            "mt-3 text-lg font-bold text-blue-400";
+
+        advice.innerText =
+            "Issue verbal advisory.";
+
+    }
+    else if (offences === 1) {
+
+        status.innerText =
+            "2ND TIME OFFENDER";
+
+        status.className =
+            "mt-3 text-lg font-bold text-amber-400";
+
+        advice.innerText =
+            "Issue composition fine.";
+
+    }
+    else {
+
+        status.innerText =
+            "REPEAT OFFENDER";
+
+        status.className =
+            "mt-3 text-lg font-bold text-rose-400";
+
+        advice.innerText =
+            "Escalate for investigation.";
+
+    }
+}
+
+</script>
+
 </body>
 </html>
+```
