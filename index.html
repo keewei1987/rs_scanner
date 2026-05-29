@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FIN Scanner - Production Build</title>
-    <!-- Tailwind CSS for rapid UI building -->
-    <script src="https://jsdelivr.net"></script>
-    <!-- Html5-QRCode engine for camera streaming -->
-    <script src="https://cloudflare.com"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Html5 QRCode -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-slate-900 text-white font-sans antialiased h-screen overflow-hidden flex flex-col justify-between p-4 selection:bg-emerald-500 selection:text-slate-900">
 
@@ -69,44 +70,75 @@
         }
 
         async function startScanning() {
-            // Clear current layout states cleanly
-            document.getElementById('result-card').classList.add('hidden');
-            
-            // Clean up old active instances before spawning a fresh hardware call
-            if (html5Qrcode) {
-                try { await html5Qrcode.stop(); } catch(e) {}
-            }
 
-            // Create fresh instance pointing to the container div
-            html5Qrcode = new Html5Qrcode("reader");
-            
-            // iOS Specific Layout Rule: Ensure the scanning box fits entirely within container boundaries
-            const containerWidth = document.getElementById('reader').clientWidth;
-            const targetScanWidth = Math.min(containerWidth * 0.7, 250); 
+    document.getElementById('result-card').classList.add('hidden');
 
-            const config = { 
-                fps: 15, 
-                // Set explicit rectangular dimensions ideal for processing long card barcodes
-                qrbox: { width: targetScanWidth, height: targetScanWidth * 0.5 },
-                aspectRatio: 1.777778 // Forces landscape layout natively inside container
-            };
-
-            html5Qrcode.start(
-                { facingMode: "environment" }, // Focus on back-facing lens hardware
-                config,
-                (decodedText) => {
-                    let cleanedFIN = decodedText.trim().toUpperCase();
-                    if (isValidFIN(cleanedFIN)) {
-                        html5Qrcode.stop();
-                        simulateDatabaseQuery(cleanedFIN);
-                    }
-                },
-                (err) => { /* Frame processing drops are normal, bypass error output log here */ }
-            ).catch(err => {
-                alert("iOS Camera Exception: Verify Safari permissions. Settings -> Safari -> Camera -> Set to Allow.");
-                console.error(err);
-            });
+    if (html5Qrcode) {
+        try {
+            await html5Qrcode.stop();
+            await html5Qrcode.clear();
+        } catch(e) {
+            console.log(e);
         }
+    }
+
+    try {
+
+        html5Qrcode = new Html5Qrcode("reader");
+
+        const containerWidth =
+            document.getElementById('reader').clientWidth;
+
+        const targetScanWidth =
+            Math.min(containerWidth * 0.7, 250);
+
+        const config = {
+            fps: 10,
+            qrbox: {
+                width: targetScanWidth,
+                height: targetScanWidth * 0.5
+            },
+            aspectRatio: 1.777778
+        };
+
+        await html5Qrcode.start(
+            {
+                facingMode: { exact: "environment" }
+            },
+            config,
+
+            (decodedText) => {
+
+                let cleanedFIN =
+                    decodedText.trim().toUpperCase();
+
+                if (isValidFIN(cleanedFIN)) {
+
+                    html5Qrcode.stop();
+
+                    simulateDatabaseQuery(cleanedFIN);
+                }
+            },
+
+            (errorMessage) => {
+                // Ignore frame scan errors
+            }
+        );
+
+    } catch (err) {
+
+        console.error("Camera start failed:", err);
+
+        alert(
+            "Unable to access camera.\n\n" +
+            "Possible causes:\n" +
+            "- Camera permission denied\n" +
+            "- Not HTTPS\n" +
+            "- Safari browser restrictions\n" +
+            "- Camera already in use"
+        );
+    }
+}
 
         function testManualInput() {
             let inputField = document.getElementById('manual-fin');
