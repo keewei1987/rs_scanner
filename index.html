@@ -124,43 +124,48 @@ async function startScanner() {
 
     try {
 
-        setStatus("Requesting camera permission...");
+        setStatus("Initializing scanner...");
 
-        // Force camera permission popup
-        await navigator.mediaDevices.getUserMedia({
-            video: true
-        });
+        // Stop previous scanner safely
+        if (scanner) {
 
-        setStatus("Camera permission granted.");
+            try {
+                await scanner.stop();
+            } catch(e) {}
 
-        if (scannerRunning && scanner) {
-            await stopScanner();
+            try {
+                await scanner.clear();
+            } catch(e) {}
         }
 
         scanner = new Html5Qrcode("reader");
 
-        // Get all cameras
-        const devices = await Html5Qrcode.getCameras();
+        // Get cameras
+        const devices =
+            await Html5Qrcode.getCameras();
 
         if (!devices || devices.length === 0) {
-            setStatus("No camera detected.");
+
+            setStatus("No cameras found.");
             return;
         }
 
         // Prefer back camera
         let cameraId = devices[0].id;
 
-        const backCamera = devices.find(device =>
-            device.label.toLowerCase().includes("back")
-        );
+        const backCamera =
+            devices.find(device =>
+                device.label.toLowerCase().includes("back")
+            );
 
         if (backCamera) {
             cameraId = backCamera.id;
         }
 
-        setStatus("Starting camera scanner...");
+        setStatus("Starting camera...");
 
         await scanner.start(
+
             cameraId,
 
             {
@@ -171,37 +176,42 @@ async function startScanner() {
                     height: 150
                 },
 
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                },
+                rememberLastUsedCamera: true,
+
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
+                ],
 
                 formatsToSupport: [
 
                     Html5QrcodeSupportedFormats.PDF_417,
                     Html5QrcodeSupportedFormats.CODE_128,
                     Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.QR_CODE,
-                    Html5QrcodeSupportedFormats.EAN_13
+                    Html5QrcodeSupportedFormats.QR_CODE
                 ]
             },
 
             (decodedText) => {
 
-                console.log("SCANNED:", decodedText);
+                console.log(decodedText);
 
-                setStatus("Barcode detected.");
+                setStatus(
+                    "Barcode detected."
+                );
 
                 processScan(decodedText);
             },
 
             (errorMessage) => {
-                // Ignore frame processing errors
+                // Ignore scan frame errors
             }
         );
 
         scannerRunning = true;
 
-        setStatus("Scanner active. Point camera at barcode.");
+        setStatus(
+            "Scanner active."
+        );
 
     } catch (err) {
 
@@ -212,15 +222,17 @@ async function startScanner() {
         );
 
         alert(
-            "Unable to start camera.\n\n" +
-            "Checklist:\n" +
-            "1. Use HTTPS or localhost\n" +
-            "2. Allow camera permissions\n" +
-            "3. Close other camera apps\n" +
-            "4. Try Chrome browser"
+            "Camera failed.\n\n" +
+            "Try:\n" +
+            "- Close all other tabs/apps using camera\n" +
+            "- Refresh page\n" +
+            "- Use Chrome\n" +
+            "- Restart browser"
         );
     }
 }
+
+
 
 async function stopScanner() {
 
