@@ -170,64 +170,61 @@ function playDing(){
 }
 
 async function startScanner(){
-
-    try{
-
+    try {
         if(scanner){
-
-            try{
-                await scanner.stop();
-            }catch(e){}
-
-            try{
-                await scanner.clear();
-            }catch(e){}
+            try{ await scanner.stop(); }catch(e){}
+            try{ await scanner.clear(); }catch(e){}
         }
 
         scanner = new Html5Qrcode("reader");
-
         setStatus("Loading camera...");
 
+        // 1. Get all available cameras connected to the device
+        const devices = await Html5Qrcode.getCameras();
+        
+        let backCameraId = null;
+
+        if (devices && devices.length) {
+            // 2. Look for a camera label that sounds like a back/rear camera
+            const backCamera = devices.find(device => 
+                device.label.toLowerCase().includes("back") || 
+                device.label.toLowerCase().includes("rear") ||
+                device.label.toLowerCase().includes("environment")
+            );
+            
+            // Use the back camera if found, otherwise default to the first available camera
+            backCameraId = backCamera ? backCamera.id : devices[0].id;
+        } else {
+            throw new Error("No cameras found on this device.");
+        }
+
+        // 3. Start the scanner using the specific Device ID string
         await scanner.start(
-    // First argument: MUST have exactly 1 key for camera selection
-        { facingMode: "environment" }, 
-    
-    // Second argument: Scanner configuration
-     {
-        fps: 20,
-        qrbox: {
-            width: 300,
-            height: 150
-        },
-        // Put your extra resolution constraints safely here:
-        videoConstraints: {
-            facingMode: { exact: "environment" },
-            width: { min: 1280, ideal: 1920 },
-            height: { min: 720, ideal: 1080 }
-        },
-        formatsToSupport: [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39
-        ]
-     },
-    
-    // Third argument: Success callback
-    async (decodedText) => {
-        await stopScanner();
-        playDing();
-        processScan(decodedText);
-    }
-    );
+            backCameraId, // Passing a string ID bypasses the 1-key object rule entirely!
+            {
+                fps: 10,
+                qrbox: { width: 350, height: 80 },
+                videoConstraints: {
+                    width: { min: 1280, ideal: 1920 },
+                    height: { min: 720, ideal: 1080 }
+                },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39
+                ]
+            },
+            async (decodedText) => {
+                await stopScanner();
+                playDing();
+                processScan(decodedText);
+            }
+        );
 
         scannerRunning = true;
-
         setStatus("Scanner Active");
 
-    }
-    catch(err){
-
+    } catch(err) {
         console.error(err);
-
         setStatus("Camera Error: " + err);
     }
 }
