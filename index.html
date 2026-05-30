@@ -2,188 +2,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport"
-          content="width=device-width,
-                   initial-scale=1.0,
-                   maximum-scale=1.0,
-                   user-scalable=no" />
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-    <title>FIN Scanner</title>
+<title>FIN Scanner Prototype</title>
 
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
-    <!-- Html5 QR Code -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 
-<body class="bg-slate-900 text-white min-h-screen flex flex-col p-4">
+<body class="bg-slate-900 text-white min-h-screen p-4">
 
-    <!-- HEADER -->
-    <div class="text-center mb-4">
-        <h1 class="text-2xl font-bold text-emerald-400">
-            FIN SCANNER
-        </h1>
+<div class="max-w-6xl mx-auto">
 
-        <p class="text-slate-400 text-sm">
-            Barcode Scanner System
-        </p>
-    </div>
+    <h1 class="text-3xl font-bold text-emerald-400 mb-2">
+        FIN Scanner Prototype
+    </h1>
 
-    <!-- CAMERA VIEW -->
-    <div class="bg-black rounded-xl overflow-hidden border border-slate-700">
-
-        <div id="reader"
-             style="width:100%; min-height:350px;">
-        </div>
-
-    </div>
-
-    <!-- STATUS -->
     <div id="status"
-         class="mt-4 p-3 rounded-lg bg-slate-800 text-sm text-slate-300">
-
-        Waiting to start scanner...
+         class="bg-slate-800 p-3 rounded-lg mb-4">
+        Ready.
     </div>
 
-    <!-- RESULT -->
-    <div id="result-card"
-         class="hidden mt-4 p-4 rounded-xl border border-emerald-500 bg-slate-800">
-
-        <div class="text-sm text-slate-400">
-            SCANNED RESULT
-        </div>
-
-        <div id="display-fin"
-             class="text-2xl font-bold mt-2 text-emerald-400 font-mono">
-        </div>
-
-        <div id="display-status"
-             class="mt-3 text-lg font-bold">
-        </div>
-
-        <div id="display-advice"
-             class="mt-3 p-3 rounded bg-slate-900 text-sm">
-        </div>
+    <div class="bg-black rounded-xl overflow-hidden border border-slate-700 mb-4">
+        <div id="reader" style="min-height:250px;"></div>
     </div>
 
-    <!-- BUTTONS -->
-    <div class="mt-4 grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-3 mb-4">
 
         <button onclick="startScanner()"
                 class="bg-emerald-500 text-black font-bold py-4 rounded-xl">
-
-            START SCANNER
+            START SCAN
         </button>
 
         <button onclick="stopScanner()"
-                class="bg-rose-500 text-white font-bold py-4 rounded-xl">
-
+                class="bg-red-500 font-bold py-4 rounded-xl">
             STOP
         </button>
+
     </div>
 
-    <!-- MANUAL TEST -->
-    <div class="mt-4 bg-slate-800 p-3 rounded-xl">
+    <div class="bg-slate-800 p-3 rounded-xl mb-4">
 
         <div class="text-sm text-slate-400 mb-2">
-            Manual FIN Test
+            Manual Test Barcode
         </div>
 
         <div class="flex gap-2">
 
             <input id="manual-fin"
                    type="text"
-                   placeholder="F1234567X"
-                   class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 uppercase font-mono" />
+                   placeholder="Scan Value"
+                   class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2">
 
             <button onclick="manualSubmit()"
                     class="bg-slate-700 px-4 rounded">
-
                 Submit
             </button>
 
         </div>
+
     </div>
+
+    <div id="result-card"
+         class="hidden bg-slate-800 rounded-xl p-4 border border-slate-700">
+
+        <div class="text-sm text-slate-400">
+            Barcode / FIN
+        </div>
+
+        <div id="display-fin"
+             class="text-2xl font-bold text-emerald-400 font-mono">
+        </div>
+
+        <div id="display-status"
+             class="text-xl font-bold mt-4">
+        </div>
+
+        <div id="display-advice"
+             class="bg-slate-900 rounded p-3 mt-3">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-4">
+
+            <div class="bg-slate-900 p-3 rounded">
+                <div class="text-xs text-slate-400">
+                    Rolling Past 2 Years
+                </div>
+
+                <div id="rolling-count"
+                     class="text-3xl font-bold text-amber-400">
+                    0
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-3 rounded">
+                <div class="text-xs text-slate-400">
+                    Total Offences
+                </div>
+
+                <div id="total-count"
+                     class="text-3xl font-bold text-rose-400">
+                    0
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-6">
+
+            <h3 class="font-bold mb-2">
+                Offence History (Past 2 Years)
+            </h3>
+
+            <div class="overflow-auto">
+
+                <table class="w-full text-sm border border-slate-700">
+
+                    <thead class="bg-slate-900">
+
+                    <tr>
+                        <th class="p-2 border">FIN</th>
+                        <th class="p-2 border">Date</th>
+                        <th class="p-2 border">Name</th>
+                        <th class="p-2 border">Time</th>
+                        <th class="p-2 border">Address</th>
+                    </tr>
+
+                    </thead>
+
+                    <tbody id="history-table">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<audio id="dingSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+            type="audio/ogg">
+</audio>
 
 <script>
 
 let scanner = null;
 let scannerRunning = false;
 
-function setStatus(message) {
-    document.getElementById("status").innerText = message;
+function setStatus(msg){
+    document.getElementById("status").innerText = msg;
 }
 
-function isValidFIN(fin) {
-    return /^[FGM][0-9]{7}[A-Z]$/.test(fin);
+function playDing(){
+
+    const sound =
+        document.getElementById("dingSound");
+
+    sound.currentTime = 0;
+
+    sound.play().catch(() => {});
 }
 
-async function startScanner() {
+async function startScanner(){
 
-    try {
+    try{
 
-        setStatus("Initializing scanner...");
+        if(scanner){
 
-        // Stop previous scanner safely
-        if (scanner) {
-
-            try {
+            try{
                 await scanner.stop();
-            } catch(e) {}
+            }catch(e){}
 
-            try {
+            try{
                 await scanner.clear();
-            } catch(e) {}
+            }catch(e){}
         }
 
         scanner = new Html5Qrcode("reader");
 
-        // Get cameras
-        const devices =
-            await Html5Qrcode.getCameras();
-
-        if (!devices || devices.length === 0) {
-
-            setStatus("No cameras found.");
-            return;
-        }
-
-        // Prefer back camera
-        let cameraId = devices[0].id;
-
-        const backCamera =
-            devices.find(device =>
-                device.label.toLowerCase().includes("back")
-            );
-
-        if (backCamera) {
-            cameraId = backCamera.id;
-        }
-
-        setStatus("Starting camera...");
+        setStatus("Loading camera...");
 
         await scanner.start(
 
-            cameraId,
+            { facingMode: "environment" },
 
             {
                 fps: 10,
 
-                qrbox: {
-                    width: 300,
-                    height: 150
+                qrbox:{
+                    width:300,
+                    height:150
                 },
 
-                rememberLastUsedCamera: true,
-
-                supportedScanTypes: [
-                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                ],
-
-                formatsToSupport: [
-
+                formatsToSupport:[
                     Html5QrcodeSupportedFormats.PDF_417,
                     Html5QrcodeSupportedFormats.CODE_128,
                     Html5QrcodeSupportedFormats.CODE_39,
@@ -191,179 +209,237 @@ async function startScanner() {
                 ]
             },
 
-            (decodedText) => {
+            async (decodedText)=>{
 
-                console.log(decodedText);
+                await stopScanner();
 
-                setStatus(
-                    "Barcode detected."
-                );
+                playDing();
 
                 processScan(decodedText);
-            },
 
-            (errorMessage) => {
-                // Ignore scan frame errors
             }
+
         );
 
         scannerRunning = true;
 
-        setStatus(
-            "Scanner active."
-        );
+        setStatus("Scanner Active");
 
-    } catch (err) {
+    }
+    catch(err){
 
         console.error(err);
 
-        setStatus(
-            "Camera failed: " + err
-        );
-
-        alert(
-            "Camera failed.\n\n" +
-            "Try:\n" +
-            "- Close all other tabs/apps using camera\n" +
-            "- Refresh page\n" +
-            "- Use Chrome\n" +
-            "- Restart browser"
-        );
+        setStatus("Camera Error: " + err);
     }
 }
 
+async function stopScanner(){
 
+    try{
 
-async function stopScanner() {
-
-    try {
-
-        if (scanner && scannerRunning) {
+        if(scanner && scannerRunning){
 
             await scanner.stop();
             await scanner.clear();
 
             scannerRunning = false;
 
-            setStatus("Scanner stopped.");
+            setStatus("Scanner Stopped");
         }
 
-    } catch (err) {
-
+    }
+    catch(err){
         console.error(err);
     }
 }
 
-function processScan(decodedText) {
-
-    let cleanedFIN =
-        decodedText.trim().toUpperCase();
-
-    // If barcode contains extra text,
-    // try extracting FIN pattern
-    const match =
-        cleanedFIN.match(/[FGM][0-9]{7}[A-Z]/);
-
-    if (match) {
-        cleanedFIN = match[0];
-    }
-
-    if (!isValidFIN(cleanedFIN)) {
-
-        setStatus(
-            "Barcode scanned but FIN format invalid."
-        );
-
-        return;
-    }
-
-    simulateDatabaseQuery(cleanedFIN);
-}
-
-function manualSubmit() {
-
-    const input =
-        document.getElementById("manual-fin");
+function manualSubmit(){
 
     const value =
-        input.value.trim().toUpperCase();
+        document.getElementById("manual-fin")
+            .value
+            .trim();
 
-    if (!isValidFIN(value)) {
-
-        alert("Invalid FIN format");
-
-        return;
-    }
+    if(!value) return;
 
     processScan(value);
-
-    input.value = "";
 }
 
-function simulateDatabaseQuery(fin) {
+function processScan(barcode){
 
-    let count =
-        localStorage.getItem(fin);
+    setStatus("Barcode Detected");
 
-    count = count ? parseInt(count) : 0;
-
-    localStorage.setItem(fin, count + 1);
-
-    showResult(fin, count);
+    showResults(barcode);
 }
 
-function showResult(fin, offences) {
+function getAllRecords(fin){
+
+    return JSON.parse(
+        localStorage.getItem(fin) || "[]"
+    );
+}
+
+function getRollingRecords(records){
+
+    const cutoff = new Date();
+
+    cutoff.setFullYear(
+        cutoff.getFullYear() - 2
+    );
+
+    return records.filter(r =>
+        new Date(r.date) >= cutoff
+    );
+}
+
+function populateHistory(records){
+
+    const table =
+        document.getElementById(
+            "history-table"
+        );
+
+    table.innerHTML = "";
+
+    records.forEach(record=>{
+
+        table.innerHTML += `
+        <tr>
+
+            <td class="border p-2">
+                ${record.fin}
+            </td>
+
+            <td class="border p-2">
+                ${record.date}
+            </td>
+
+            <td class="border p-2">
+                ${record.workerName}
+            </td>
+
+            <td class="border p-2">
+                ${record.time}
+            </td>
+
+            <td class="border p-2">
+                ${record.address}
+            </td>
+
+        </tr>
+        `;
+    });
+}
+
+function showResults(fin){
 
     const card =
         document.getElementById("result-card");
 
     card.classList.remove("hidden");
 
-    document.getElementById("display-fin")
-        .innerText = fin;
+    document.getElementById(
+        "display-fin"
+    ).innerText = fin;
+
+    let records =
+        getAllRecords(fin);
+
+    // Demo data if empty
+
+    if(records.length === 0){
+
+        records = [
+
+            {
+                fin: fin,
+                date: "2025-08-15",
+                workerName: "Rahman Bin Ali",
+                time: "09:32",
+                address: "Jurong West Street 65"
+            },
+
+            {
+                fin: fin,
+                date: "2026-03-01",
+                workerName: "Rahman Bin Ali",
+                time: "13:21",
+                address: "Woodlands Avenue 7"
+            }
+
+        ];
+
+        localStorage.setItem(
+            fin,
+            JSON.stringify(records)
+        );
+    }
+
+    const rollingRecords =
+        getRollingRecords(records);
+
+    const rollingCount =
+        rollingRecords.length;
+
+    const totalCount =
+        records.length;
+
+    document.getElementById(
+        "rolling-count"
+    ).innerText = rollingCount;
+
+    document.getElementById(
+        "total-count"
+    ).innerText = totalCount;
 
     const status =
-        document.getElementById("display-status");
+        document.getElementById(
+            "display-status"
+        );
 
     const advice =
-        document.getElementById("display-advice");
+        document.getElementById(
+            "display-advice"
+        );
 
-    if (offences === 0) {
+    if(rollingCount === 0){
 
         status.innerText =
             "1ST TIME OFFENDER";
 
         status.className =
-            "mt-3 text-lg font-bold text-blue-400";
+            "text-xl font-bold mt-4 text-blue-400";
 
         advice.innerText =
             "Issue verbal advisory.";
 
     }
-    else if (offences === 1) {
+    else if(rollingCount === 1){
 
         status.innerText =
             "2ND TIME OFFENDER";
 
         status.className =
-            "mt-3 text-lg font-bold text-amber-400";
+            "text-xl font-bold mt-4 text-amber-400";
 
         advice.innerText =
-            "Issue composition fine.";
+            "Issue advisory and take statement.";
 
     }
-    else {
+    else{
 
         status.innerText =
             "REPEAT OFFENDER";
 
         status.className =
-            "mt-3 text-lg font-bold text-rose-400";
+            "text-xl font-bold mt-4 text-red-400";
 
         advice.innerText =
-            "Escalate for investigation.";
-
+            "Escalate for enforcement action.";
     }
+
+    populateHistory(rollingRecords);
 }
 
 </script>
