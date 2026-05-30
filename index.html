@@ -202,7 +202,7 @@ async function startScanner(){
         await scanner.start(
             backCameraId, // Passing a string ID bypasses the 1-key object rule entirely!
             {
-                fps: 20,
+                fps: 15,
                 qrbox: { width: 350, height: 80 },
                 videoConstraints: {
                     width: { min: 1280, ideal: 1920 },
