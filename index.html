@@ -201,6 +201,7 @@ async function startScanner(){
         },
         // Put your extra resolution constraints safely here:
         videoConstraints: {
+            facingMode: { exact: "environment" },
             width: { min: 1280, ideal: 1920 },
             height: { min: 720, ideal: 1080 }
         },
