@@ -189,38 +189,34 @@ async function startScanner(){
         setStatus("Loading camera...");
 
         await scanner.start(
-
-            { facingMode: "environment"
-            
-             },
-
-            {
-                fps: 20,
-
-                qrbox:{
-                    width:350,
-                    height:80
-                },
-
-                formatsToSupport:[
-                    Html5QrcodeSupportedFormats.PDF_417,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39
-                    
-                ]
-            },
-
-            async (decodedText)=>{
-
-                await stopScanner();
-
-                playDing();
-
-                processScan(decodedText);
-
-            }
-
-        );
+    // First argument: MUST have exactly 1 key for camera selection
+    { facingMode: "environment" }, 
+    
+    // Second argument: Scanner configuration
+    {
+        fps: 10,
+        qrbox: {
+            width: 350,
+            height: 80
+        },
+        // Put your extra resolution constraints safely here:
+        videoConstraints: {
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 }
+        },
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+        ]
+    },
+    
+    // Third argument: Success callback
+    async (decodedText) => {
+        await stopScanner();
+        playDing();
+        processScan(decodedText);
+        }
+    );
 
         scannerRunning = true;
 
