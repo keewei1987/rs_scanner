@@ -190,14 +190,14 @@ async function startScanner(){
 
         await scanner.start(
 
-           { 
-                facingMode: "environment",
-                width: { min: 1280, ideal: 1920 },
-                height: { min: 720, ideal: 1080 }
-            },
+            { facingMode: "environment",
+                aspectRatio: 1.7777777778, // Forces 16:9 aspect ratio
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 }
+             },
 
             {
-                fps: 25,
+                fps: 20,
 
                 qrbox:{
                     width:350,
@@ -208,7 +208,6 @@ async function startScanner(){
                     Html5QrcodeSupportedFormats.PDF_417,
                     Html5QrcodeSupportedFormats.CODE_128,
                     Html5QrcodeSupportedFormats.CODE_39
-            
                 ]
             },
 
