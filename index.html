@@ -200,25 +200,34 @@ async function startScanner(){
 
         // 3. Start the scanner using the specific Device ID string
         await scanner.start(
-            backCameraId, // Passing a string ID bypasses the 1-key object rule entirely!
-            {
-                fps: 15,
-                qrbox: { width: 350, height: 80 },
-                videoConstraints: {
-                    width: { min: 1280, ideal: 1920 },
-                    height: { min: 720, ideal: 1080 }
-                },
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39
-                ]
-            },
-            async (decodedText) => {
-                await stopScanner();
-                playDing();
-                processScan(decodedText);
-            }
-        );
+    // 1. First argument: Must match what's inside videoConstraints to avoid a conflict
+    { facingMode: { exact: "environment" } }, 
+    
+    // 2. Second argument: Scanner configuration
+    {
+        fps: 10,
+        qrbox: { width: 350, height: 80 },
+        
+        // CRITICAL: Put the strict camera constraints here too
+        videoConstraints: {
+            facingMode: { exact: "environment" }, 
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 }
+        },
+        
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+        ]
+    },
+    
+    // 3. Third argument: Success callback
+    async (decodedText) => {
+        await stopScanner();
+        playDing();
+        processScan(decodedText);
+    }
+);
 
         scannerRunning = true;
         setStatus("Scanner Active");
